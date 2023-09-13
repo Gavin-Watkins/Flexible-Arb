@@ -11,29 +11,28 @@ The most important part of any ARB are the DACs. For this I settle on the DAC080
 
 The DAC (IC1 and IC3) and op-amp (IC2 and IC4) interface is shown in the schematic which is given both in the original Eagle format and a png. The peak output current of the DAC0801 is set at 2.13mA by the 4k7 resistors on pins 14 and 15 (R10, R14, R19 and R20) when a ±10V power supply is used. A 1k1 resistor tied to 0V and two 4k7 resistors in series (9k4) to +10 V positive supply rail add an offset so the output voltage at pin 4 swings positive and negative around 0V. This is a high impedance port so an op-amp with a gain of 2V/V buffers the output to drive 2V peak-to-peak into a 50Ω load. In the prototype a TL071 proved optimal in terms of bandwidth and ringing. The TL071 has a unity gain bandwidth product of 3MHz, reduced to 1.5MHz with a gain of 2V/V. Other op-amps may provide a better combination of bandwidth, slew rate and output current.
 
-Programming
-Arduinos are very easy to program in C with their free integrated development environment (IDE). The Arduino Due does however use some different commands to those of the more common varieties when directly accessing ports. The following commands setup port C of the Due for direct access: PIOC→PIO_PER and PIOC→PIO_OER. PIOC→PIO_ODSR is then used to write data to the port as shown in the code listing in Figure 3. 
-
-There are a number of “eccentricities” in this code. Firstly, the loop which accesses the LUT and sends it to Port C runs in the setup, not in the main loop. For some reason it ran quicker taking only 10 instructions, resulting in 8.4MS/s output rate. The LUT allocations are accessed by the variable count which is a 32-bit integer. This is masked (by ANDing) with FF (256) in the example shown here. Increasing this to FFF would allow addressing of a 4096 allocation LUT etc. Restricting the LUT to powers of 2 simplifies (and hence speeds up) the code. For other values an IF or FOR loop could be used to reset count at any value. 
-
-The code listed in Figure 3 generates two quadrature sine waves on the two DAC outputs (Ch A and Ch B) at 32.8125kHz (8.4MS/s / 256). count is incremented by 1 on each iteration. Increasing the increment value would increase the sine wave frequency similar to direct digital synthesis [3]. 
-
-Another eccentricity of the code is included the noInterrupts command to disable interrupts even though none were set. If not included, the complier appears to enable an interrupt by default resulting in jitter on the output waveform. If a lower sample frequency is desired though, the delayMicroseconds command can be included. In this case noInterrupts should be commented out.
+# Code
+The Arduino Due can be programmed in the usual Arduino IDE, but has a unique set of instructions which allows direct port access. The following commands setup port C of the Due for direct access: PIOC→PIO_PER and PIOC→PIO_OER. The command PIOC→PIO_ODSR is then used to write data to the port. A goto loop sends data from the LUT to Port C runs in the setup, as using the main Void loop incurs various overheads including the I/O system to check the serial port. The result is 10 instructions and 8.4MS/s output rate. The LUT allocations are accessed by the variable count which is a 32-bit integer. This is masked (by ANDing) with FF (256) in the sinewave example, 1FF (512) in the triple test example and 4FFF (16384) for the 4G Long Term Evolution (LTE) signal example. Restricting the LUT to powers of 2 simplifies (and hence speeds up) the code. For other values an IF or FOR loop could be used to reset count at any value. A noInterrupts command to disable interrupts is included as without it jitter was noted on the output waveform suggesting the compiler sets some interrupts by default. If a lower sample frequency is desired though, the delayMicroseconds command can be included. In this case noInterrupts should be commented out.
 
 # Data Generation
-The data for all ports and the trigger signal are stored in a single LUT (Portvalues in Figure 3). For Port C, the bits available on the external pins are: bits 1-8 for Ch A, bits 12-19 for Ch B, bits 21-26 for the digital interface and bit 28 as a trigger. These are generated individually and then mapped into a 32bit word by multiplying the individual values by an offset and adding them together, for example:
+The data for all ports and the trigger signal are stored in a single LUT (Portvalues in the code). For Port C, the bits that are available on the external pins are: bits 1-8 for Ch A DAC, bits 12-19 for Ch B DAC, bits 21-26 for the digital interface and bit 28 as a trigger. These are generated individually and then mapped into a 32bit word by multiplying the individual values by an offset and adding them together, for example:
 
 Word32 = 2^28*Trigger + 2^21*Digital + 2^12*DAC2 + 2*DAC1
 
 # Tool Chain 
-The data can be generated in a spreadsheet like Excel or OpenOffice, or programming language like Python or Matlab. If using a spreadsheet, one useful tip is the “&” function to combine the values of individual cells into a single cell of comma separated values which can be copy and pasted into the Arduino code. LUTs are normally displayed as a square array, i.e. 16 columns by 16 rows for 256 values like in Figure 3 instead of a single column. The “&” command can be used for example:
+The first two examples were generated in an OpenOffice spreadsheet (File "Signal Gen3.ods) as the LUTs were not very big. The third example was in Python ( due to the resulting LUT size. If using a spreadsheet the data will be generated in a single column. This can be copy and pasted directly into the Arduino IDE as a single column array. It is often more practical though to do this as a 2D array. The values from different cells can be combined with commas as a string into a single cell using the “&” function. In the sinewave example where the values of column Y are to be reformatted into a 16 column by 16 row for 256 values the following is used:
 
 =Y2 & " , " & Y3 & ", " & Y4 & ", " & Y5 & ", " & Y6 & ", " & Y7 & ", " & Y8 & ", " & Y9 & ", " & Y10 & ", " & Y11 & ", " & Y12 & ", " & Y13 & ", " & Y14 & ", " & Y15 & ", " & Y16 & ", " & Y17 & ", "
 
-This groups together the values from cells Y2 to Y17 into a single cell so that when pasted into the Arduino IDE they appear as a single row of 16 columns.
+Using the autofill function will not appropriately increment the Y column values, so there is still quite a bit of manual processing to be done, which is why for larger arrays it is appropriate to use Python. The Python code reads in the File "1M4LTE.txt" 
 
 # Hardware Implementation
 To verify the concept, an Arduino Due “shield” was produced. This was fabricated on standard FR4 substrate using through hole DIL components. DIL components incur stray inductance and capacitance when operating in the MHz region, but allow the design to be easily modified. A surface mount implementation would probably produce better results than those presented here. 
+
+# Examples
+
+The code listed in Figure 3 generates two quadrature sine waves on the two DAC outputs (Ch A and Ch B) at 32.8125kHz (8.4MS/s / 256). count is incremented by 1 on each iteration. Increasing the increment value would increase the sine wave frequency similar to direct digital synthesis [3]. 
+
 
 A screen capture of the two quadrature outputs generated by the code in Figure 3 is shown in Figure 4. There is no output lowpass filter after the DACs other than the frequency response of the TL071. Additional passive filtering would reduce the output switching noise. 
 
