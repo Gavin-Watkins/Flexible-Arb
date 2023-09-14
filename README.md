@@ -7,10 +7,10 @@ The Arduino Due is based on the 32-bit ATSAM3X8E allowing multiple 8-bit DACs an
 The first thing anyone looks at with an ARB is the sampling rate. In a software based ARB like this (as oppose to an FPGA implementation) the microprocessor much fetch the output samples from memory and present them to the port with the DAC. This takes ten instruction cycles resulting in 8.4 MS/s as shown below in the minimum viable code:
 
 start:                                  // start of loop
-  count = count + 1;                    // increment counter, takes one instruction
-  count = count & 0x000000FF;           // mask to prevent overflow from end of LUT, takes one instruction
-  PIOC->PIO_ODSR = Portvalues[count];   // access the LUT and send it to PortC, takes six instructions
-  goto start;                           // and repeat, takes two instructions
+count = count + 1;                    // increment counter, takes one instruction
+count = count & 0x000000FF;           // mask to prevent overflow from end of LUT, takes one instruction
+PIOC->PIO_ODSR = Portvalues[count];   // access the LUT and send it to PortC, takes six instructions
+goto start;                           // and repeat, takes two instructions
 
 # DACs
 The most important part of any ARB are the DACs. For this I settle on the DAC0801. Although quite old, they are readily available and easy to interface. Their datasheet quotes a settling time of 100ns consisting of the DAC slewing time and that for any ringing at the output to settle. The slewing time is a factor of the DAC output current and its load impedance. This suggests a maximum sample rate of 10 MS/s, which fits well with the 8.4 MS/s of the Due. The DAC0801 has complementary current sink outputs (pins 2 and 4). The datasheet suggests op-amp active current to voltage (I/V) converters as an output stage. This was found to introduce excess ringing, so passive resistive I/V converters were used instead. With a 1kΩ resistive load (RL) the slew rate was 30V/μs equivalent to a rise and fall time of 42ns. 
