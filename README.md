@@ -6,7 +6,7 @@ The Arduino Due is based on the 32-bit ATSAM3X8E allowing multiple 8-bit DACs an
 # Testing the Arduino Due
 The first thing anyone looks at with an ARB is the sampling rate. In a software based ARB like this (as oppose to an FPGA implementation) the microprocessor much fetch the output samples from memory and present them to the port with the DAC. This takes ten instruction cycles resulting in 8.4 MS/s as shown below in the minimum viable code:
 
-start:                                // start of loop 
+start:                                // start of loop  
 
 count = count + 1;                    // increment counter, takes one instruction
 
