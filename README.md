@@ -16,6 +16,8 @@ PIOC->PIO_ODSR = Portvalues[count];   // access the LUT and send it to PortC, ta
 
 goto start;                           // and repeat, takes two instructions
 
+The felixbility of this option opens up other possiblities, like adding a second port which reads from its own LUT. PortA offers 23 bits, which would give a total of 47bits of data. This would however slow down the sample rate to 5.25 MS/s and require external latches for synchronising the data.
+
 # DACs
 The most important part of any ARB are the DACs. For this I settle on the DAC0801. Although quite old, they are readily available and easy to interface. Their datasheet quotes a settling time of 100ns consisting of the DAC slewing time and that for any ringing at the output to settle. The slewing time is a factor of the DAC output current and its load impedance. This suggests a maximum sample rate of 10 MS/s, which fits well with the 8.4 MS/s of the Due. The DAC0801 has complementary current sink outputs (pins 2 and 4). The datasheet suggests op-amp active current to voltage (I/V) converters as an output stage. This was found to introduce excess ringing, so passive resistive I/V converters were used instead. With a 1kΩ resistive load (RL) the slew rate was 30V/μs equivalent to a rise and fall time of 42ns. 
 
